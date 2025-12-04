@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: bankengine-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: bankengine
+    ports:
+      - "5480:5432"
+    volumes:
+      - bankengine_pgdata:/var/lib/postgresql/data
+    networks:
+      - bankengine-net
+
+  redis:
+    image: redis:7
+    container_name: bankengine-redis
+    restart: always
+    ports:
+      - "6380:6379"
+    networks:
+      - bankengine-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: bankengine-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5680:5672"
+      - "15680:15672"
+    networks:
+      - bankengine-net
+
+  bankengine-app:
+    build: .
+    container_name: bankengine-app
+    restart: on-failure
+    ports:
+      - "9080:9080"
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - bankengine-net
+
+volumes:
+  bankengine_pgdata:
+
+networks:
+  bankengine-net:
+    driver: bridge
