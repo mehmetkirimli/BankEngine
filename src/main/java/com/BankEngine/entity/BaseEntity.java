@@ -3,6 +3,7 @@ package com.BankEngine.entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import java.time.LocalDateTime;
 import lombok.Getter;
@@ -10,6 +11,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@MappedSuperclass
 public class BaseEntity
 {
   @Id
