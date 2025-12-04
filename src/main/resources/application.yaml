@@ -1,0 +1,37 @@
+# 1. SERVER CONFIG
+server:
+  port: 9080 # Uygulamanın çalışacağı port
+
+# 2. POSTGRESQL (DATASOURCE) CONFIG
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5480/bankengine
+    username: admin
+    password: admin
+    driver-class-name: org.postgresql.Driver
+  application:
+    name: BankEngine
+
+  # JPA/Hibernate Ayarları
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+
+  # 3. REDIS CONFIG (Cache, Lock, Idempotency)
+  data:
+    redis:
+      host: localhost
+      port: 6380
+
+  # 4. RABBITMQ CONFIG (Messaging)
+  rabbitmq:
+    host: localhost
+    port: 5680
+    username: guest
+    password: guest
+
