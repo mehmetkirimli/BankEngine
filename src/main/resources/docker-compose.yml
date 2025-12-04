@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+
   postgres:
     image: postgres:15
     container_name: bankengine-postgres
@@ -35,19 +36,6 @@ services:
     ports:
       - "5680:5672"
       - "15680:15672"
-    networks:
-      - bankengine-net
-
-  bankengine-app:
-    build: .
-    container_name: bankengine-app
-    restart: on-failure
-    ports:
-      - "9080:9080"
-    depends_on:
-      - postgres
-      - redis
-      - rabbitmq
     networks:
       - bankengine-net
 
