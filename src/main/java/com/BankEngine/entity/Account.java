@@ -7,9 +7,13 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "accounts")
+@Getter
+@Setter
 public class Account extends BaseEntity
 {
   private Long clientId ;
