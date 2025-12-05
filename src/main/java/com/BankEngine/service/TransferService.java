@@ -6,6 +6,7 @@ import com.BankEngine.dto.TransferDto;
 import com.BankEngine.entity.Account;
 import com.BankEngine.entity.OutboxEvent;
 import com.BankEngine.entity.Transfer;
+import com.BankEngine.enumaration.OutboxStatus;
 import com.BankEngine.enumaration.TransferStatus;
 import com.BankEngine.exception.BusinessException;
 import com.BankEngine.exception.NotFoundException;
@@ -14,6 +15,8 @@ import com.BankEngine.mapper.TransferMapper;
 import com.BankEngine.repository.AccountRepository;
 import com.BankEngine.repository.OutboxRepository;
 import com.BankEngine.repository.TransferRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,33 +36,36 @@ public class TransferService {
   private final RedisLockService redisLockService;
 
   private final TransferMapper mapper;
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Transactional
-  public TransferDto create(TransferCreateDto dto) {
+  public TransferDto createTransfer(TransferCreateDto dto) throws JsonProcessingException {
 
+    // 1) Validations
     validateTransferRequest(dto);
 
-    Account source = accountRepository.findById(dto.getSourceAccountId())
-        .orElseThrow(() -> new NotFoundException("Source account not found"));
-
-    Account target = accountRepository.findById(dto.getTargetAccountId())
-        .orElseThrow(() -> new NotFoundException("Target account not found"));
-
-    if (source.getBalance().compareTo(dto.getAmount()) < 0) {
-      throw new BusinessException("Insufficient balance");
-    }
-
-    // Şimdilik sadece kayıt altına alıyoruz
-    Transfer transfer = mapper.toEntity(dto);
+    // 2) Domain işlem
+    Transfer transfer = new Transfer();
+    transfer.setSourceAccountId(dto.getSourceAccountId());
+    transfer.setTargetAccountId(dto.getTargetAccountId());
+    transfer.setAmount(dto.getAmount());
     transfer.setStatus(TransferStatus.PENDING);
 
     transferRepository.save(transfer);
 
-    log.info("Transfer requested. id={}, from={}, to={}, amount={}",
-        transfer.getId(), source.getId(), target.getId(), dto.getAmount());
+    // 3) OUTBOX EVENT OLUŞTUR
+    OutboxEvent event = new OutboxEvent();
+    event.setEventType("TRANSFER_CREATED");
+    event.setStatus(OutboxStatus.NEW);
+    event.setAggegateId(transfer.getId());
+    event.setPayload(objectMapper.writeValueAsString(transfer));
 
+    outboxRepository.save(event);
+
+    // 4) DTO return
     return mapper.toDto(transfer);
   }
+
   @Transactional(readOnly = true)
   public TransferDto get(Long id) {
     Transfer t = transferRepository.findById(id)
@@ -137,13 +143,15 @@ public class TransferService {
 
 
 
-      // 4-) Outbox Event => transfer tamamlanınca event gönderiliyor  // TODO bu kısımı RabbitMq ile yazılacak
+      // 4-) Outbox Event => transfer tamamlanınca event gönderiliyor
       OutboxEvent event = new OutboxEvent();
-      event.setAggegateId(transfer.getId());
-      event.setEventType("TRANSFER COMPLETED");
-      event.setPayload("{\"transferId\":" + transfer.getId() + "}");
-      outboxRepository.save(event);
 
+      event.setAggegateId(transfer.getId());
+      event.setEventType("TRANSFER_COMPLETED");
+      event.setStatus(OutboxStatus.NEW);
+      event.setPayload(objectMapper.writeValueAsString(transfer));
+
+      outboxRepository.save(event);
 
 
       // 5-)  Cache Invalidation
@@ -153,8 +161,10 @@ public class TransferService {
 
       return mapper.toDto(transfer);
 
-
-
+    }
+    catch (JsonProcessingException e)
+    {
+      throw new RuntimeException(e);
     }
     finally
     {

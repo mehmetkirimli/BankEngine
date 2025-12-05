@@ -16,7 +16,7 @@ public class TransferController {
 
   @PostMapping
   public TransferDto create(@RequestBody TransferCreateDto dto) {
-    return transferService.create(dto);
+    return transferService.transfer(dto);
   }
 
   @GetMapping("/{id}")
