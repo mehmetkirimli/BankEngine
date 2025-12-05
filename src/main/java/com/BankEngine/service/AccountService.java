@@ -1,5 +1,6 @@
 package com.BankEngine.service;
 
+import com.BankEngine.cache.AccountCacheService;
 import com.BankEngine.dto.AccountCreateDto;
 import com.BankEngine.dto.AccountDto;
 import com.BankEngine.entity.Account;
@@ -21,6 +22,7 @@ public class AccountService {
 
   private final AccountRepository accountRepository;
   private final AccountMapper mapper;
+  private final AccountCacheService accountCacheService;
 
   @Transactional
   public AccountDto create(AccountCreateDto dto) {
@@ -35,6 +37,9 @@ public class AccountService {
 
     accountRepository.save(entity);
 
+    // NEW: client hesap listesi cache'ten silinir
+    accountCacheService.evictClientAccounts(dto.getClientId());
+
     log.info("Account created. id={}, iban={}", entity.getId(), entity.getIban());
 
     return mapper.toDto(entity);
@@ -42,9 +47,7 @@ public class AccountService {
 
   @Transactional(readOnly = true)
   public AccountDto get(Long id) {
-    Account acc = accountRepository.findById(id).orElseThrow(() -> new NotFoundException("Account not found: " + id));
-
-    return mapper.toDto(acc);
+    return accountCacheService.getAccountDetail(id);
   }
 
   @Transactional(readOnly = true)
@@ -68,4 +71,9 @@ public class AccountService {
       throw new BusinessException("IBAN is required");
     }
   }
+
+  public List<AccountDto> getByClientId(Long clientId) {
+    return accountCacheService.getAccountsByClientId(clientId);
+  }
+
 }

@@ -2,6 +2,8 @@ package com.BankEngine.dto;
 
 import com.BankEngine.enumaration.AccountStatus;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.Data;
 
 @Data
@@ -12,4 +14,5 @@ public class AccountDto {
   private BigDecimal balance;
   private String currency;
   private AccountStatus status;
+  private LocalDateTime createdAt;
 }

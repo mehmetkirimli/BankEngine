@@ -27,6 +27,8 @@ public class AccountMapper {
     dto.setBalance(acc.getBalance());
     dto.setCurrency(acc.getCurrency());
     dto.setStatus(acc.getStatus());
+
+    dto.setCreatedAt(acc.getCreatedAt());
     return dto;
   }
 }
