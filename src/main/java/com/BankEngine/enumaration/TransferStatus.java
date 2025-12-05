@@ -1,6 +1,8 @@
 package com.BankEngine.enumaration;
 
+import lombok.Getter;
 
+@Getter
   public enum TransferStatus {
     PENDING(1,"PENDING"),
     COMPLETED(2,"COMPLETED"),

@@ -1,5 +1,8 @@
 package com.BankEngine.enumaration;
 
+import lombok.Getter;
+
+@Getter
 public enum OutboxStatus {
   NEW(1,"NEW"),
   SENT(2,"SENT");

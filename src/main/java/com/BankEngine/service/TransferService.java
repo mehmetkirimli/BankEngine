@@ -137,7 +137,7 @@ public class TransferService {
 
 
 
-      // 4-) Outbox Event
+      // 4-) Outbox Event => transfer tamamlanınca event gönderiliyor  // TODO bu kısımı RabbitMq ile yazılacak
       OutboxEvent event = new OutboxEvent();
       event.setAggegateId(transfer.getId());
       event.setEventType("TRANSFER COMPLETED");
@@ -148,7 +148,7 @@ public class TransferService {
 
       // 5-)  Cache Invalidation
 
-      accountCacheService.evictAccountDetail(sourceId);
+      accountCacheService.evictAccountDetail(sourceId); // Cacheler silinmeli
       accountCacheService.evictAccountDetail(targetId);
 
       return mapper.toDto(transfer);
