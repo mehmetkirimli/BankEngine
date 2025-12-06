@@ -16,7 +16,7 @@ spring:
   jpa:
     show-sql: true
     hibernate:
-      ddl-auto: create-drop #update de yapabilirsin
+      ddl-auto: update #create-drop veya #update de yapabiliriz
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect

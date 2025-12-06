@@ -44,7 +44,6 @@ public class AccountCacheService
 
     return dtoList;
   }
-
   // 2) Hesap detayını cache'den getir
   public AccountDto getAccountDetail(Long accountId)
   {
@@ -74,32 +73,48 @@ public class AccountCacheService
     redisTemplate.opsForValue().set(key, dto, TTL);
     return dto;
   }
-
   // 3) Cache invalidation
-  public void evictClientAccounts(Long clientId) {
-    redisTemplate.delete(CacheKeys.accountList(clientId));
-  }
-
-  public void evictAccountDetail(Long accountId) {
+  public void evictAccountDetail(Long accountId)
+  {
     redisTemplate.delete(CacheKeys.accountDetail(accountId));
   }
-
+  public void evictClientAccountList(Long clientId)
+  {
+    redisTemplate.delete(CacheKeys.accountList(clientId));
+  }
   public void setAccountDetail(Long id, AccountDto dto)
   {
     String key = CacheKeys.accountDetail(id);
     redisTemplate.opsForValue().set(key, dto, TTL);
   }
-
-  public void setAccountList(Long clientId, List<AccountDto> dtoList) {
+  public void setAccountList(Long clientId, List<AccountDto> dtoList)
+  {
     String key = CacheKeys.accountList(clientId);
     redisTemplate.opsForValue().set(key, dtoList, TTL);
   }
+  public List<AccountDto> getAccountList(Long clientId)
+  {
+    String key = CacheKeys.accountList(clientId);
 
-  public AccountDto toDto(Account acc) {
-    return accountMapper.toDto(acc);
+    // 1) Önce cache’e bak
+    List<AccountDto> cached = (List<AccountDto>) redisTemplate.opsForValue().get(key);
+    if (cached != null)
+    {
+      return cached;
+    }
+
+    // 2) Cache boş => DB’den al
+    List<AccountDto> dtoList = accountRepository
+        .findByClientId(clientId)
+        .stream()
+        .map(accountMapper::toDto)
+        .toList();
+
+    // 3) Cache’e yaz
+    setAccountList(clientId, dtoList);
+
+    return dtoList;
   }
-
-
 }
 
 /*

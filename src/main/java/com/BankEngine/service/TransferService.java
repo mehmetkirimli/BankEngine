@@ -38,50 +38,13 @@ public class TransferService {
   private final TransferMapper mapper;
   private final ObjectMapper objectMapper ;
 
-  @Transactional
-  public TransferDto createTransfer(TransferCreateDto dto) throws JsonProcessingException {
-
-    // 1) Validations
-    validateTransferRequest(dto);
-
-    // 2) Domain işlem
-    Transfer transfer = new Transfer();
-    transfer.setSourceAccountId(dto.getSourceAccountId());
-    transfer.setTargetAccountId(dto.getTargetAccountId());
-    transfer.setAmount(dto.getAmount());
-    transfer.setStatus(TransferStatus.PENDING);
-
-    transferRepository.save(transfer);
-
-    // 3) OUTBOX EVENT OLUŞTUR
-    OutboxEvent event = new OutboxEvent();
-    event.setEventType("TRANSFER_CREATED");
-    event.setStatus(OutboxStatus.NEW);
-    event.setAggegateId(transfer.getId());
-    event.setPayload(objectMapper.writeValueAsString(transfer));
-
-    outboxRepository.save(event);
-
-    // 4) DTO return
-    return mapper.toDto(transfer);
-  }
 
   @Transactional(readOnly = true)
-  public TransferDto get(Long id) {
-    Transfer t = transferRepository.findById(id)
-        .orElseThrow(() -> new NotFoundException("Transfer not found"));
+  public TransferDto get(Long id)
+  {
+    Transfer t = transferRepository.findById(id).orElseThrow(() -> new NotFoundException("Transfer not found"));
     return mapper.toDto(t);
   }
-  private void validateTransferRequest(TransferCreateDto dto) {
-    if (dto.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-      throw new BusinessException("Transfer amount must be positive");
-    }
-
-    if (dto.getSourceAccountId().equals(dto.getTargetAccountId())) {
-      throw new BusinessException("Source and target accounts cannot be same");
-    }
-  }
-
   @Transactional
   public TransferDto transfer (TransferCreateDto dto)
   {
@@ -174,5 +137,42 @@ public class TransferService {
     }
 
 
+  }
+  @Transactional
+  public TransferDto createTransfer(TransferCreateDto dto) throws JsonProcessingException
+  {
+    // 1) Validations
+    validateTransferRequest(dto);
+
+    // 2) Domain işlem
+    Transfer transfer = new Transfer();
+    transfer.setSourceAccountId(dto.getSourceAccountId());
+    transfer.setTargetAccountId(dto.getTargetAccountId());
+    transfer.setAmount(dto.getAmount());
+    transfer.setStatus(TransferStatus.PENDING);
+
+    transferRepository.save(transfer);
+
+    // 3) OUTBOX EVENT OLUŞTUR
+    OutboxEvent event = new OutboxEvent();
+    event.setEventType("TRANSFER_CREATED");
+    event.setStatus(OutboxStatus.NEW);
+    event.setAggegateId(transfer.getId());
+    event.setPayload(objectMapper.writeValueAsString(transfer));
+
+    outboxRepository.save(event);
+
+    // 4) DTO return
+    return mapper.toDto(transfer);
+  }
+  private void validateTransferRequest(TransferCreateDto dto)
+  {
+    if (dto.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+      throw new BusinessException("Transfer amount must be positive");
+    }
+
+    if (dto.getSourceAccountId().equals(dto.getTargetAccountId())) {
+      throw new BusinessException("Source and target accounts cannot be same");
+    }
   }
 }

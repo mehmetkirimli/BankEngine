@@ -25,11 +25,13 @@ public class AccountService {
   private final AccountCacheService accountCacheService;
 
   @Transactional
-  public AccountDto create(AccountCreateDto dto) {
+  public AccountDto create(AccountCreateDto dto)
+  {
 
     validateAccountCreateRequest(dto);
 
-    if (accountRepository.findByIban(dto.getIban()).isPresent()) {
+    if (accountRepository.findByIban(dto.getIban()).isPresent())
+    {
       throw new BusinessException("IBAN already exists");
     }
 
@@ -38,18 +40,17 @@ public class AccountService {
     accountRepository.save(entity);
 
     // NEW: client hesap listesi cache'ten silinir
-    accountCacheService.evictClientAccounts(dto.getClientId());
+    accountCacheService.evictClientAccountList(dto.getClientId());
 
     log.info("Account created. id={}, iban={}", entity.getId(), entity.getIban());
 
     return mapper.toDto(entity);
   }
-
   @Transactional(readOnly = true)
-  public AccountDto get(Long id) {
+  public AccountDto get(Long id)
+  {
     return accountCacheService.getAccountDetail(id);
   }
-
   @Transactional(readOnly = true)
   public List<AccountDto> getAll()
   {
@@ -58,7 +59,10 @@ public class AccountService {
         .map(mapper::toDto)
         .toList();
   }
-
+  public List<AccountDto> getByClientId(Long clientId)
+  {
+    return accountCacheService.getAccountsByClientId(clientId);
+  }
   private void validateAccountCreateRequest(AccountCreateDto dto)
   {
     if (dto.getBalance().compareTo(BigDecimal.ZERO) < 0)
@@ -70,10 +74,6 @@ public class AccountService {
     {
       throw new BusinessException("IBAN is required");
     }
-  }
-
-  public List<AccountDto> getByClientId(Long clientId) {
-    return accountCacheService.getAccountsByClientId(clientId);
   }
 
 }
