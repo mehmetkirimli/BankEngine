@@ -4,9 +4,11 @@ import com.BankEngine.enumaration.AccountStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
+@AllArgsConstructor
 public class AccountDto {
   private Long id;
   private Long clientId;
