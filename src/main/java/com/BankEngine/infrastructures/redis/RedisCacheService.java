@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 public class RedisCacheService
 {
   private final StringRedisTemplate redisTemplate;
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper;
 
 
   public <T> void set(String key,T value , Duration ttl)

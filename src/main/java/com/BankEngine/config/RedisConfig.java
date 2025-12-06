@@ -1,41 +1,55 @@
 package com.BankEngine.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-
 @Configuration
 public class RedisConfig {
 
-  /**
-   * Varsayılan RedisTemplate'i, String anahtarlar ve JSON değerler kullanacak şekilde ayarlar.
-   * Bu sayede, cache'e konulan AccountDto gibi objeler düzgünce serileştirilir.
-   */
+  // Tek ObjectMapper
   @Bean
-  public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
+  public ObjectMapper redisObjectMapper() {
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerModule(new JavaTimeModule());
+    objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    objectMapper.activateDefaultTyping(
+        LaissezFaireSubTypeValidator.instance,
+        ObjectMapper.DefaultTyping.NON_FINAL
+    );
+    return objectMapper;
+  }
 
-    // 1. Yeni bir RedisTemplate<String, Object> örneği oluşturulur.
+  @Bean
+  public RedisConnectionFactory redisConnectionFactory() {
+    return new LettuceConnectionFactory("localhost", 6380);
+  }
+
+  @Bean
+  public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory,ObjectMapper redisObjectMapper )  // <-- DIKKAT!!! Buradan geliyor
+  {
     RedisTemplate<String, Object> template = new RedisTemplate<>();
-    template.setConnectionFactory(connectionFactory);
+    template.setConnectionFactory(factory);
 
-    // 2. Anahtarlar için String Serileştirici ayarlanır. (Örn: "account:123")
-    // Redis'te anahtarların okunabilir olması için önemlidir.
-    StringRedisSerializer stringSerializer = new StringRedisSerializer();
-    template.setKeySerializer(stringSerializer);
-    template.setHashKeySerializer(stringSerializer);
+    template.setKeySerializer(new StringRedisSerializer());
+    template.setHashKeySerializer(new StringRedisSerializer());
 
-    // 3. Değerler için JSON Serileştirici ayarlanır. (Objeleri JSON'a çevirir)
-    // Bu, AccountDto'nuzun Serializable olmasını gerektirmez ve daha okunabilir format sağlar.
-    GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer();
-    template.setValueSerializer(jsonSerializer);
-    template.setHashValueSerializer(jsonSerializer);
+    Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
 
-    // 4. Tüm ayarların geçerli olması için post-processing yapılır.
+    // Bean mapper kullanılıyor!!
+    serializer.setObjectMapper(redisObjectMapper);
+
+    template.setValueSerializer(serializer);
+    template.setHashValueSerializer(serializer);
+
     template.afterPropertiesSet();
-
     return template;
   }
 }

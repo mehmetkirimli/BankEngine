@@ -4,6 +4,7 @@ import com.BankEngine.dto.AccountDto;
 import com.BankEngine.entity.Account;
 import com.BankEngine.mapper.AccountMapper;
 import com.BankEngine.repository.AccountRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,21 +19,14 @@ public class AccountCacheService
   private final RedisTemplate<String,Object> redisTemplate;
   private final AccountRepository accountRepository;
   private final AccountMapper accountMapper;
+  private final ObjectMapper objectMapper ;
 
   private final Duration TTL = Duration.ofMinutes(5);
-
-  private String clientAccountsKey(Long clientId) {
-    return "CLIENT:ACCOUNTS:" + clientId;
-  }
-
-  private String accountDetailKey(Long accountId) {
-    return "ACCOUNT:DETAIL:" + accountId;
-  }
 
   // 1) Client hesap listesini cache'den getir
   public List<AccountDto> getAccountsByClientId(Long clientId)
   {
-    String key = clientAccountsKey(clientId);
+    String key = CacheKeys.accountList(clientId);
 
     List<AccountDto> cached = (List<AccountDto>) redisTemplate.opsForValue().get(key);
     if (cached != null)
@@ -54,11 +48,23 @@ public class AccountCacheService
   // 2) Hesap detayını cache'den getir
   public AccountDto getAccountDetail(Long accountId)
   {
-    String key = accountDetailKey(accountId);
+    String key = CacheKeys.accountDetail(accountId);
 
-    AccountDto cached = (AccountDto) redisTemplate.opsForValue().get(key);
+    Object cached = redisTemplate.opsForValue().get(key);
+
     if (cached != null)
-      return cached;
+    {
+      try
+      {
+        //Json string ise olduğu gibi deserialize etcez
+        String json = objectMapper.writeValueAsString(cached);
+        return objectMapper.readValue(json, AccountDto.class);
+      }
+      catch (Exception e)
+      {
+        throw new RuntimeException("Cache deserialize error brother !" , e);
+      }
+    }
 
     Account account = accountRepository.findById(accountId)
         .orElseThrow(() -> new RuntimeException("Account not found"));
@@ -71,12 +77,28 @@ public class AccountCacheService
 
   // 3) Cache invalidation
   public void evictClientAccounts(Long clientId) {
-    redisTemplate.delete(clientAccountsKey(clientId));
+    redisTemplate.delete(CacheKeys.accountList(clientId));
   }
 
   public void evictAccountDetail(Long accountId) {
-    redisTemplate.delete(accountDetailKey(accountId));
+    redisTemplate.delete(CacheKeys.accountDetail(accountId));
   }
+
+  public void setAccountDetail(Long id, AccountDto dto)
+  {
+    String key = CacheKeys.accountDetail(id);
+    redisTemplate.opsForValue().set(key, dto, TTL);
+  }
+
+  public void setAccountList(Long clientId, List<AccountDto> dtoList) {
+    String key = CacheKeys.accountList(clientId);
+    redisTemplate.opsForValue().set(key, dtoList, TTL);
+  }
+
+  public AccountDto toDto(Account acc) {
+    return accountMapper.toDto(acc);
+  }
+
 
 }
 

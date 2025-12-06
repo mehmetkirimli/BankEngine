@@ -36,7 +36,7 @@ public class TransferService {
   private final RedisLockService redisLockService;
 
   private final TransferMapper mapper;
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper ;
 
   @Transactional
   public TransferDto createTransfer(TransferCreateDto dto) throws JsonProcessingException {
